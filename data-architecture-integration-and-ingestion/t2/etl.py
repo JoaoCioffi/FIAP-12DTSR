@@ -1,6 +1,6 @@
-import json
-from queries import MySQL, MongoDB  # Cassandra pode ser adicionado depois
+from handlers import MySQL, MongoDB  # Cassandra pode ser adicionado depois
 import subprocess
+import json
 import time
 
 def carregar_schema(caminho="schema.json"):

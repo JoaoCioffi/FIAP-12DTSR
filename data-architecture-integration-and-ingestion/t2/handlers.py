@@ -1,10 +1,10 @@
-import mysql.connector
+from urllib.parse import quote_plus
 from pymongo import MongoClient
 from dotenv import load_dotenv
-from urllib.parse import quote_plus
-import os
+import mysql.connector
 import pandas as pd
 import json
+import os
 
 class MySQL:
     def __init__(self):
