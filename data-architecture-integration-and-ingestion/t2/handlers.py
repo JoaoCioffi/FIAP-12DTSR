@@ -7,6 +7,9 @@ import json
 import os
 
 class MySQL:
+    """
+    a
+    """
     def __init__(self):
         load_dotenv()
 
