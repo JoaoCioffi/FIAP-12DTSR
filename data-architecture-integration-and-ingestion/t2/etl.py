@@ -5,7 +5,7 @@ from params import params
 import mysql.connector
 
 # inicializa o docker
-dockerCompose()
+# dockerCompose()
 
 # carrega as variáveis de ambiente
 _,credentials=params()
@@ -70,6 +70,7 @@ try:
             CREATE TABLE IF NOT EXISTS `pedidos` (
                 `id` int NOT NULL AUTO_INCREMENT,
                 `id_cliente` int NOT NULL,
+                `cliente` varchar(255) NOT NULL,
                 `endereco` varchar(255) NOT NULL,
                 `cep` varchar(255) NOT NULL,
                 `itens` varchar(255) NOT NULL,
@@ -89,7 +90,6 @@ try:
         
         print("\n>> Tabela de Clientes:")
         print(df_clientes,'\n')
-        colNames=tuple(df_clientes.columns.values)
         for index in range(len(df_clientes)):
             val=tuple(df_clientes.iloc[index].values)
             insertQueryString="""
@@ -100,6 +100,35 @@ try:
             cursor.execute(insertQueryString,val)
             cnx.commit()
             print(f"{val} ⇾ {cursor.rowcount} record inserted.")
+        
+        print("\n>> Tabela de Produtos:")
+        print(df_produtos,'\n')
+        for index in range(len(df_produtos)):
+            val=tuple(df_produtos.iloc[index].values)
+            insertQueryString="""
+            INSERT INTO produtos 
+            (codigo,nome,modelo,fabricante,cor,tam)
+            VALUES (%s,%s,%s,%s,%s,%s);
+            """
+            cursor.execute(insertQueryString,val)
+            cnx.commit()
+            print(f"{val} ⇾ {cursor.rowcount} record inserted.")
+            
+        print("\n>> Tabela de Pedidos:")
+        print(df_pedidos,'\n')
+        for index in range(len(df_pedidos)):
+            val=tuple(df_pedidos.iloc[index].values)
+            insertQueryString="""
+            INSERT INTO pedidos
+            (id_cliente,cliente,endereco,cep,itens,qtdes,valor_pago)
+            VALUES (%s,%s,%s,%s,%s,%s,%s);
+            """
+            cursor.execute(insertQueryString,val)
+            cnx.commit()
+            print(f"{val} ⇾ {cursor.rowcount} record inserted.")
+            
+        """Executa uma query (DML)"""
+        print("\n⚡ Importando dados do concorrente: produtos, clientes - [PARTE 03]")
 
     except Error as e:
         print(f"\n🔴 [ERROR] Erro ao criar as tabelas no MySQL:\n{e}")

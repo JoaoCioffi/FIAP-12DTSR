@@ -16,20 +16,20 @@ def readFiles():
         'email':'string',
         'telefones':'string'})
     df_produtos=pd.read_csv(filesPath["original_db"]["products"]).astype({
-        'codigo':'int32',
+        'codigo':'string',
         'nome':'string',
         'modelo':'string',
         'fabricante':'string',
         'cor':'string',
         'tam':'string'})
     df_pedidos=pd.read_csv(filesPath["original_db"]["orders"]).astype({
+        'id_cliente':'string',
         'cliente':'string',
-        'id_cliente':'int32',
         'endereco':'string',
         'cep':'string',
         'itens':'string',
-        'qtdes':'int32',
-        'valor_pago':'float64'})
+        'qtdes':'string',
+        'valor_pago':'string'})
     df_clientes_concorrente=pd.read_csv(filesPath["imported_db"]["customers"]).astype({
         'cpf':'string',
         'nome':'string',
@@ -38,7 +38,7 @@ def readFiles():
         'email':'string',
         'telefones':'string'})
     df_produtos_concorrente=pd.read_csv(filesPath["imported_db"]["products"]).astype({
-        'codigo':'int32',
+        'codigo':'string',
         'nome':'string',
         'modelo':'string',
         'fabricante':'string',
