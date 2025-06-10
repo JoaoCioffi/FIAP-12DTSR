@@ -1,87 +1,115 @@
-from handlers import MySQL, MongoDB  # Cassandra pode ser adicionado depois
-import subprocess
-import json
-import time
+from docker_handler import dockerCompose
+from read_csv_files import readFiles
+from mysql.connector import Error
+from params import params
+import mysql.connector
 
-def carregar_schema(caminho="schema.json"):
-    """Lê o arquivo JSON de schema e retorna o dicionário"""
-    with open(caminho, "r", encoding="utf-8") as f:
-        return json.load(f)
+# inicializa o docker
+dockerCompose()
 
-# ---------- MySQL ----------
-def criar_tabelas_mysql(schema):
-    print("\n💾 Criando tabelas no MySQL...")
-    mysql = MySQL()
-    for tabela_nome, tabela_schema in schema.items():
-        mysql.create(tabela_schema, tabela_nome)
-    mysql.close()
+# carrega as variáveis de ambiente
+_,credentials=params()
 
-def inserir_dados_mysql(schema):
-    print("\n📥 Inserindo dados no MySQL...")
-    mysql = MySQL()
-    mysql.insert(schema["Clientes"], "Clientes", "data/clientes_sample.csv")
-    mysql.insert(schema["Produtos"], "Produtos", "data/produtos_sample.csv")
-    mysql.insert(schema["Pedidos"], "Pedidos", "data/pedidos_sample.csv")
-    mysql.close()
+# carrega os dataframes (extraídos dos arquivos .csv)
+df_clientes,\
+df_produtos,\
+df_pedidos,\
+df_clientes_concorrente,\
+df_produtos_concorrente=readFiles()
 
-def importar_concorrente_mysql(schema):
-    print("\n🏢 Importando dados do concorrente no MySQL...")
-    mysql = MySQL()
-    mysql.update(schema["Clientes"], "Clientes", "data/clientes_concorrente.csv")
-    mysql.update(schema["Produtos"], "Produtos", "data/produtos_concorrente.csv")
-    mysql.close()
-
-# ---------- MongoDB ----------
-def iniciar_docker_mongodb():
-    print("\n🐳 Iniciando container do MongoDB via Docker Compose...")
+# ------------------------ MySQL ------------------------ #
+print('\n','-='*32,'\n','\t\t\t[MySQL Handler]\n')
+try:
+    """Estabelece a conexão com o banco de dados."""
+    cnx = mysql.connector.connect(
+        host=credentials["MySQL"]["host"],
+        port=credentials["MySQL"]["port"],
+        user=credentials["MySQL"]["user"],
+        password=credentials["MySQL"]["password"],
+        database=credentials["MySQL"]["database"]
+    )
+    cursor = cnx.cursor()
+    print("\n🟢 [INFO] Conexão com MySQL estabelecida...")
     try:
-        subprocess.run(["docker", "compose", "up", "-d"], check=True)
-        time.sleep(5)  # Aguarda alguns segundos para o Mongo estar de pé
-        print("✅ Docker MongoDB iniciado com sucesso.\n")
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Erro ao iniciar o Docker: {e}")
+        
+        """Executa uma query (DDL)"""
+        print("\n⚡ Criando tabelas no MySQL: produtos, clientes, pedidos - [PARTE 01]")
 
-def criar_colecoes_mongo(schema):
-    print("\n💾 Criando coleções no MongoDB...")
-    mongo = MongoDB()
-    for collection_name, collection_schema in schema.items():
-        mongo.create(collection_schema, collection_name)
-    mongo.close()
+        print("\n>> Criando a tabela de clientes...")
+        createQueryString="""
+            CREATE TABLE IF NOT EXISTS `clientes` (
+                `id` int NOT NULL AUTO_INCREMENT,
+                `cpf` varchar(255) NOT NULL,
+                `nome` varchar(255) NOT NULL,
+                `endereco` varchar(255),
+                `cep` varchar(255),
+                `email` varchar(255),
+                `telefone` varchar(255),
+            PRIMARY KEY (`id`)
+            );
+        """
+        cursor.execute(createQueryString)
 
-def inserir_dados_mongo(schema):
-    print("\n📥 Inserindo documentos no MongoDB...")
-    mongo = MongoDB()
-    mongo.insert(schema["Clientes"], "Clientes", "data/clientes_sample.csv")
-    mongo.insert(schema["Produtos"], "Produtos", "data/produtos_sample.csv")
-    mongo.insert(schema["Pedidos"], "Pedidos", "data/pedidos_sample.csv")
-    mongo.close()
+        print("\n>> Criando a tabela de produtos...")
+        createQueryString="""
+            CREATE TABLE IF NOT EXISTS `produtos` (
+                `id` int NOT NULL AUTO_INCREMENT,
+                `codigo` varchar(255) NOT NULL,
+                `nome` varchar(255) NOT NULL,
+                `modelo` varchar(255) NOT NULL,
+                `fabricante` varchar(255) NOT NULL,
+                `cor` varchar(255),
+                `tam` varchar(255),
+            PRIMARY KEY (`id`)
+            );
+        """
+        cursor.execute(createQueryString)
 
-def importar_concorrente_mongo(schema):
-    print("\n🏢 Importando dados do concorrente no MongoDB...")
-    mongo = MongoDB()
-    mongo.update(schema["Clientes"], "Clientes", "data/clientes_concorrente.csv")
-    mongo.update(schema["Produtos"], "Produtos", "data/produtos_concorrente.csv")
-    mongo.close()
+        print("\n>> Criando a tabela de pedidos...")
+        createQueryString="""
+            CREATE TABLE IF NOT EXISTS `pedidos` (
+                `id` int NOT NULL AUTO_INCREMENT,
+                `id_cliente` int NOT NULL,
+                `endereco` varchar(255) NOT NULL,
+                `cep` varchar(255) NOT NULL,
+                `itens` varchar(255) NOT NULL,
+                `qtdes` int,
+                `valor_pago` float,
+                PRIMARY KEY (`id`),
+            FOREIGN KEY (id_cliente) REFERENCES clientes(id)
+        );
+        """
+        cursor.execute(createQueryString)
+        
+        cursor.execute("""SHOW TABLES;""")
+        print(f"\n>> Tabelas criadas: {cursor.fetchall()}")
 
-# ---------- Execução ----------
-def main():
-    print("🔄 Iniciando processo ETL...\n")
-    schema = carregar_schema()
+        """Executa uma query (DML)"""
+        print("\n⚡ Inserindo os dados nas tabelas no MySQL: produtos, clientes, pedidos - [PARTE 02]")
+        
+        print("\n>> Tabela de Clientes:")
+        print(df_clientes,'\n')
+        colNames=tuple(df_clientes.columns.values)
+        for index in range(len(df_clientes)):
+            val=tuple(df_clientes.iloc[index].values)
+            insertQueryString="""
+            INSERT INTO clientes 
+            (cpf,nome,endereco,cep,email,telefone)
+            VALUES (%s,%s,%s,%s,%s,%s);
+            """
+            cursor.execute(insertQueryString,val)
+            cnx.commit()
+            print(f"{val} ⇾ {cursor.rowcount} record inserted.")
 
-    # MySQL
-    print('\n','-='*32,'\n','\t\t\t[MySQL Handler]')
-    criar_tabelas_mysql(schema)
-    inserir_dados_mysql(schema)
-    importar_concorrente_mysql(schema)
+    except Error as e:
+        print(f"\n🔴 [ERROR] Erro ao criar as tabelas no MySQL:\n{e}")
+        cnx.rollback()
 
-    # MongoDB
-    print('\n','-='*32,'\n','\t\t\t[MongoDB Handler]')
-    iniciar_docker_mongodb()
-    criar_colecoes_mongo(schema)
-    inserir_dados_mongo(schema)
-    importar_concorrente_mongo(schema)
-
-    print("\n✅ Processo concluído com sucesso.")
-
-if __name__ == "__main__":
-    main()
+except Error as e:
+    print(f"\n🔴 [ERROR] Erro ao conectar ao MySQL:\n{e}")
+    cnx.close()
+    print("\n🔴 [INFO] Conexão com MySQL encerrada...")
+    raise
+finally:
+    cnx.close()
+    print("\n🔴 [INFO] com MySQL encerrada...\n")
