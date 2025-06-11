@@ -5,6 +5,7 @@ import json
 filesPath,_=params()
 
 def readFiles():
+    print('\n','-='*32)
     print("\n⏳ Carregando a base de dados (.csv)...")
 
     """Carrega os arquivos num dataframe pandas e converte os DTypes"""

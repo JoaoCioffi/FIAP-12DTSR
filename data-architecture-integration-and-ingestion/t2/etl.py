@@ -1,14 +1,14 @@
-from docker_handler import dockerCompose
+from docker_handler import dockerComposeUp,dockerComposeDown
 from read_csv_files import readFiles
 from mysql.connector import Error
 from params import params
 import mysql.connector
 
-# inicializa o docker
-# dockerCompose()
-
 # carrega as variáveis de ambiente
 _,credentials=params()
+
+# inicializa o container
+dockerComposeUp()
 
 # carrega os dataframes (extraídos dos arquivos .csv)
 df_clientes,\
@@ -142,3 +142,10 @@ except Error as e:
 finally:
     cnx.close()
     print("\n🔴 [INFO] com MySQL encerrada...\n")
+    
+# ------------------------ MongoDB ------------------------ #
+
+# ------------------------ Cassandra ------------------------ #
+
+# finaliza o container
+dockerComposeDown()
