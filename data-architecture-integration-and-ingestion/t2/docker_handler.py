@@ -12,13 +12,13 @@ def dockerComposeUp():
     print("\n🐳 Iniciando containers via Docker Compose...\n")
     try:
         subprocess.run(["docker", "compose", "up", "-d"], check=True)
-        print("\n")
-        for t in tqdm(np.arange(0,12,0.6),desc="Estabelendo portas",colour='green'):
-            time.sleep(1)
+        # print("\n")
+        # for _ in tqdm(np.arange(0,10,0.4),desc="Estabelendo portas",colour='green'):
+        #     time.sleep(1)
         print("\n")
         print(f"🟢 MySQL ⇾ running at localhost:{credentials['MySQL']['port']}")
         print(f"🟢 MongoDB ⇾ running at localhost:{credentials['MySQL']['port']}")
-        print(f"🟢 Cassandra ⇾ running at localhost:{credentials['MySQL']['port']}")
+        print(f"🟢 Cassandra ⇾ running at localhost:{credentials['Cassandra']['port']}")
         print(f"\n[INFO] Docker iniciado com sucesso.")
     except subprocess.CalledProcessError as e:
         return f"\n[ERROR] Erro ao iniciar o Docker: {e}"

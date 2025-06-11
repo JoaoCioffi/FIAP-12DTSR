@@ -1,11 +1,13 @@
 from docker_handler import dockerComposeUp,dockerComposeDown
+from cassandra.auth import PlainTextAuthProvider
+from cassandra.cluster import Cluster
 from read_csv_files import readFiles
 from mysql.connector import Error
 from params import params
 import mysql.connector
 
 # opção para o usuário
-userInput = input("\n>> Deseja interromper automaticamente a docker ao final da execução do script (S/N)? ")
+userInput=input("\n>> Deseja interromper automaticamente a docker ao final da execução do script (S/N)? ")
 if userInput.upper() not in ("S","N"):
     print("\nEntrada inválida. Encerrando o programa...")
     exit()
@@ -27,14 +29,14 @@ df_produtos_concorrente=readFiles()
 print('\n','-='*32,'\n','\t\t\t[MySQL Handler]\n')
 try:
     """Estabelece a conexão com o banco de dados."""
-    cnx = mysql.connector.connect(
+    cnx=mysql.connector.connect(
         host=credentials["MySQL"]["host"],
         port=credentials["MySQL"]["port"],
         user=credentials["MySQL"]["user"],
         password=credentials["MySQL"]["password"],
         database=credentials["MySQL"]["database"]
     )
-    cursor = cnx.cursor()
+    cursor=cnx.cursor()
     print("\n🟢 [INFO] Conexão com MySQL estabelecida...")
     try:
         
@@ -208,6 +210,31 @@ print('\n','-='*32,'\n','\t\t\t[MongoDB Handler]\n')
 # ------------------------ Cassandra ------------------------ #
 print('\n','-='*32,'\n','\t\t\t[Cassandra Handler]\n')
 
+# Configurações do cluster
+auth_provider=PlainTextAuthProvider(
+                                        username=credentials["Cassandra"]["user"],
+                                        password=credentials["Cassandra"]["password"]
+                                        )
+cluster=Cluster(['localhost'],port=credentials["Cassandra"]["port"],auth_provider=auth_provider)
+
+try:
+    # Conectando-se ao cluster
+    session=cluster.connect()
+    print("\n🟢 [INFO] Conexão com MySQL estabelecida...")
+
+    print(f"\n>> Criando keyspace {credentials["Cassandra"]["keyspace"]}...")
+    createKeyspaceString="""
+    CREATE KEYSPACE IF NOT EXISTS {keyspace}
+    WITH replication = {{'class': 'SimpleStrategy', 'replication_factor': '1'}}
+    """.format(keyspace=credentials["Cassandra"]["keyspace"])
+    session.execute(createKeyspaceString)
+
+except Exception as e:
+    raise 
+finally:
+    pass
+
+# ------------------------ End of Execution ------------------------ #
 # finaliza o container
 if userInput.upper()=="S":
     dockerComposeDown()
