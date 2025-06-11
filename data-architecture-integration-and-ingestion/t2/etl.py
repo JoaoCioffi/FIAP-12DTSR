@@ -4,6 +4,12 @@ from mysql.connector import Error
 from params import params
 import mysql.connector
 
+# opção para o usuário
+userInput = input("\n>> Deseja interromper automaticamente a docker ao final da execução do script (S/N)? ")
+if userInput.upper() not in ("S","N"):
+    print("\nEntrada inválida. Encerrando o programa...")
+    exit()
+
 # carrega as variáveis de ambiente
 _,credentials=params()
 
@@ -34,8 +40,9 @@ try:
         
         """Executa uma query (DDL)"""
         print("\n⚡ Criando tabelas no MySQL: produtos, clientes, pedidos - [PARTE 01]")
-
-        print("\n>> Criando a tabela de clientes...")
+        
+        print("\n")
+        print(">> Criando a tabela de clientes...")
         createQueryString="""
             CREATE TABLE IF NOT EXISTS `clientes` (
                 `id` int NOT NULL AUTO_INCREMENT,
@@ -50,7 +57,7 @@ try:
         """
         cursor.execute(createQueryString)
 
-        print("\n>> Criando a tabela de produtos...")
+        print(">> Criando a tabela de produtos...")
         createQueryString="""
             CREATE TABLE IF NOT EXISTS `produtos` (
                 `id` int NOT NULL AUTO_INCREMENT,
@@ -65,7 +72,7 @@ try:
         """
         cursor.execute(createQueryString)
 
-        print("\n>> Criando a tabela de pedidos...")
+        print(">> Criando a tabela de pedidos...")
         createQueryString="""
             CREATE TABLE IF NOT EXISTS `pedidos` (
                 `id` int NOT NULL AUTO_INCREMENT,
@@ -82,9 +89,17 @@ try:
         """
         cursor.execute(createQueryString)
         
+        """Verifica tabelas criadas e registros"""
+        print("\n")
         cursor.execute("""SHOW TABLES;""")
-        print(f"\n>> Tabelas criadas: {cursor.fetchall()}")
-
+        print(f">> Tabelas criadas: {cursor.fetchall()}")
+        cursor.execute("""SELECT COUNT(*) FROM clientes;""")
+        print(f">> Total de registros (clientes): {cursor.fetchall()}")
+        cursor.execute("""SELECT COUNT(*) FROM produtos;""")
+        print(f">> Total de registros (produtos): {cursor.fetchall()}")
+        cursor.execute("""SELECT COUNT(*) FROM pedidos;""")
+        print(f">> Total de registros (pedidos): {cursor.fetchall()}")
+        
         """Executa uma query (DML)"""
         print("\n⚡ Inserindo os dados nas tabelas no MySQL: produtos, clientes, pedidos - [PARTE 02]")
         
@@ -126,9 +141,53 @@ try:
             cursor.execute(insertQueryString,val)
             cnx.commit()
             print(f"{val} ⇾ {cursor.rowcount} record inserted.")
+        
+        """Verifica registros"""
+        print("\n")
+        cursor.execute("""SELECT COUNT(*) FROM clientes;""")
+        print(f">> Total de registros (clientes): {cursor.fetchall()}")
+        cursor.execute("""SELECT COUNT(*) FROM produtos;""")
+        print(f">> Total de registros (produtos): {cursor.fetchall()}")
+        cursor.execute("""SELECT COUNT(*) FROM pedidos;""")
+        print(f">> Total de registros (pedidos): {cursor.fetchall()}")
             
         """Executa uma query (DML)"""
         print("\n⚡ Importando dados do concorrente: produtos, clientes - [PARTE 03]")
+        
+        print("\n>> Tabela de Produtos:")
+        print(df_produtos_concorrente,'\n')
+        for index in range(len(df_produtos_concorrente)):
+            val=tuple(df_produtos_concorrente.iloc[index].values)
+            insertQueryString="""
+            INSERT INTO produtos 
+            (codigo,nome,modelo,fabricante,cor,tam)
+            VALUES (%s,%s,%s,%s,%s,%s);
+            """
+            cursor.execute(insertQueryString,val)
+            cnx.commit()
+            print(f"{val} ⇾ {cursor.rowcount} record inserted.")
+        
+        print("\n>> Tabela de Clientes:")
+        print(df_clientes_concorrente,'\n')
+        for index in range(len(df_clientes_concorrente)):
+            val=tuple(df_clientes_concorrente.iloc[index].values)
+            insertQueryString="""
+            INSERT INTO clientes 
+            (cpf,nome,endereco,cep,email,telefone)
+            VALUES (%s,%s,%s,%s,%s,%s);
+            """
+            cursor.execute(insertQueryString,val)
+            cnx.commit()
+            print(f"{val} ⇾ {cursor.rowcount} record inserted.")
+        
+        """Verifica registros"""
+        print("\n")
+        cursor.execute("""SELECT COUNT(*) FROM clientes;""")
+        print(f">> Total de registros (clientes): {cursor.fetchall()}")
+        cursor.execute("""SELECT COUNT(*) FROM produtos;""")
+        print(f">> Total de registros (produtos): {cursor.fetchall()}")
+        cursor.execute("""SELECT COUNT(*) FROM pedidos;""")
+        print(f">> Total de registros (pedidos): {cursor.fetchall()}")
 
     except Error as e:
         print(f"\n🔴 [ERROR] Erro ao criar as tabelas no MySQL:\n{e}")
@@ -141,11 +200,17 @@ except Error as e:
     raise
 finally:
     cnx.close()
-    print("\n🔴 [INFO] com MySQL encerrada...\n")
+    print("\n🔴 [INFO] Conexão com MySQL encerrada...\n")
     
 # ------------------------ MongoDB ------------------------ #
+print('\n','-='*32,'\n','\t\t\t[MongoDB Handler]\n')
 
 # ------------------------ Cassandra ------------------------ #
+print('\n','-='*32,'\n','\t\t\t[Cassandra Handler]\n')
 
 # finaliza o container
-dockerComposeDown()
+if userInput.upper()=="S":
+    dockerComposeDown()
+    print("\n[INFO] Execução do programa finalizada.\n")
+else:
+    print("\n[INFO] Execução do programa finalizada. Docker ainda ativo...\n")
