@@ -1,5 +1,6 @@
 from docker_handler import dockerComposeUp,dockerComposeDown
 from cassandra.auth import PlainTextAuthProvider
+from stablish_ports import awaitsService
 from cassandra.cluster import Cluster
 from read_csv_files import readFiles
 from mysql.connector import Error
@@ -27,8 +28,12 @@ df_produtos_concorrente=readFiles()
 
 # ------------------------ MySQL ------------------------ #
 print('\n','-='*32,'\n','\t\t\t[MySQL Handler]\n')
+
+# awaitsService(start=0,stop=15,step=0.6)
+
 try:
     """Estabelece a conexão com o banco de dados."""
+    print("\n>> Tentando conectar ao MySQL...")
     cnx=mysql.connector.connect(
         host=credentials["MySQL"]["host"],
         port=credentials["MySQL"]["port"],
@@ -37,7 +42,7 @@ try:
         database=credentials["MySQL"]["database"]
     )
     cursor=cnx.cursor()
-    print("\n🟢 [INFO] Conexão com MySQL estabelecida...")
+    print(f"\n🟢 [INFO] Conexão com MySQL estabelecida na porta: {credentials['MySQL']['port']}")
     try:
         
         """Executa uma query (DDL)"""
@@ -207,8 +212,12 @@ finally:
 # ------------------------ MongoDB ------------------------ #
 print('\n','-='*32,'\n','\t\t\t[MongoDB Handler]\n')
 
-# ------------------------ Cassandra ------------------------ #
+# awaitsService(start=0,stop=2,step=0.25)
+
+# ---------------------------- Cassandra ---------------------------- #
 print('\n','-='*32,'\n','\t\t\t[Cassandra Handler]\n')
+
+# awaitsService(start=0,stop=30,step=0.6)
 
 # Configurações do cluster
 auth_provider=PlainTextAuthProvider(
@@ -218,21 +227,101 @@ auth_provider=PlainTextAuthProvider(
 cluster=Cluster(['localhost'],port=credentials["Cassandra"]["port"],auth_provider=auth_provider)
 
 try:
-    # Conectando-se ao cluster
+    """Estabelece a conexão com o banco de dados."""
+    print("\n>> Tentando conectar ao Cassandra...")
     session=cluster.connect()
-    print("\n🟢 [INFO] Conexão com MySQL estabelecida...")
+    
+    if session:
+        
+        print(f"\n🟢 [INFO] Conexão com Cassandra estabelecida na porta: {credentials['Cassandra']['port']} | cluster: {credentials['Cassandra']['cluster']} | datacenter: {credentials['Cassandra']['datacenter']}")
+        print(f"\n>> Criando keyspace...")
+        
+        """Cria um Keyspace"""
+        keyspace=credentials["Cassandra"]["keyspace"]
+        createKeyspaceCQL = f"""
+        CREATE KEYSPACE IF NOT EXISTS {keyspace}
+        WITH replication = {{'class': 'SimpleStrategy', 'replication_factor': '1'}}
+        """
+        session.execute(createKeyspaceCQL)
 
-    print(f"\n>> Criando keyspace {credentials["Cassandra"]["keyspace"]}...")
-    createKeyspaceString="""
-    CREATE KEYSPACE IF NOT EXISTS {keyspace}
-    WITH replication = {{'class': 'SimpleStrategy', 'replication_factor': '1'}}
-    """.format(keyspace=credentials["Cassandra"]["keyspace"])
-    session.execute(createKeyspaceString)
+        print(f"\n[INFO] Keyspace `{keyspace}` criado...")
+
+        """Usando o Keyspace criado"""
+        session.set_keyspace(keyspace)
+
+        """Criando as tabelas"""
+        print("\n⚡ Criando tabelas no Cassandra: produtos, clientes, pedidos - [PARTE 01]")
+
+        print("\n")
+        print(">> Criando a tabela de clientes...")
+        createQueryString="""
+            CREATE TABLE IF NOT EXISTS clientes (
+                id int PRIMARY KEY,
+                cpf text,
+                nome text,
+                endereco text,
+                cep text,
+                email text,
+                telefone text
+            );
+        """
+        session.execute(createQueryString)
+
+        print(">> Criando a tabela de produtos...")
+        createQueryString="""
+            CREATE TABLE IF NOT EXISTS produtos (
+                id int PRIMARY KEY,
+                codigo text,
+                nome text,
+                modelo text,
+                fabricante text,
+                cor list<text>,
+                tam list<text>
+        );
+        """
+        session.execute(createQueryString)
+
+        print(">> Criando a tabela de pedidos...")
+        createQueryString="""
+            CREATE TABLE IF NOT EXISTS pedidos (
+                id int PRIMARY KEY,
+                id_cliente int,
+                cliente text,
+                endereco text,
+                cep text,
+                itens list<text>,
+                qtdes list<int>,
+                valor_pago float
+            );
+        """
+        session.execute(createQueryString)
+
+        """Inserindo registros"""
+        print("\n⚡ Inserindo os dados nas tabelas no Cassandra: produtos, clientes, pedidos - [PARTE 02]")
+        
+        print("\n>> Tabela de Clientes:")
+        ids=[index+1 for index in df_clientes.index]
+        for index in range(len(df_clientes)):
+            dfRowValues=tuple(df_clientes.iloc[index].values)
+            val=[ids[index]]
+            for v in dfRowValues:
+                val.append(v)
+            val=tuple(val)
+            insertQueryString="""
+            INSERT INTO clientes (id,cpf,nome,endereco,cep,email,telefone)
+            VALUES (%s,%s,%s,%s,%s,%s,%s);"""
+            session.execute(query=insertQueryString,parameters=val)
+            print(f"{val} ⇾ 1 record inserted.")
+            
 
 except Exception as e:
-    raise 
+    print(f"\n🔴 [ERROR] Falha ao conectar: {e}")
 finally:
-    pass
+    if session:
+        session.shutdown()
+    cluster.shutdown()
+    print("\n🔴 [INFO] Cluster Cassandra encerrado...\n")
+
 
 # ------------------------ End of Execution ------------------------ #
 # finaliza o container

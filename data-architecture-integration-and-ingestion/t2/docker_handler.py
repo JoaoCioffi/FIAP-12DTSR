@@ -12,9 +12,6 @@ def dockerComposeUp():
     print("\n🐳 Iniciando containers via Docker Compose...\n")
     try:
         subprocess.run(["docker", "compose", "up", "-d"], check=True)
-        # print("\n")
-        # for _ in tqdm(np.arange(0,10,0.4),desc="Estabelendo portas",colour='green'):
-        #     time.sleep(1)
         print("\n")
         print(f"🟢 MySQL ⇾ running at localhost:{credentials['MySQL']['port']}")
         print(f"🟢 MongoDB ⇾ running at localhost:{credentials['MySQL']['port']}")
