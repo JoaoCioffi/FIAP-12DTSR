@@ -1,7 +1,7 @@
-tqdm==4.66.5
-python-dotenv==1.0.1
-numpy==1.26.4
-cassandra-driver==3.29.2
-pymongo==4.13.0
-mysql-connector-python==9.2.0
-pandas==2.2.3
+tqdm
+python-dotenv
+numpy
+cassandra-driver
+pymongo
+mysql-connector-python
+pandas

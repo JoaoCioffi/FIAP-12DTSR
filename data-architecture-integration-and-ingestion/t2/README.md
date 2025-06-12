@@ -34,6 +34,7 @@ Este projeto consiste na modelagem e integração de dados para um sistema de ve
 ├── etl.py                         # script que lê cada um dos arquivos (.csv), e carrega em cada uma das bases (processo ETL)
 │                                  # Obs: ESTE É O SCRIPT PRINCIPAL! NÃO EXECUTE NENHUM OUTRO ALÉM DELE!
 │
+├── install_requirements.ipynb     # jupyter notebook para troubleshooting caso alguma lib não funcionar adequadamente
 ├── params.py                      # script que carrega as variáveis de ambiente de cada banco e aponta para os arquivos .csv
 ├── read_csv_files.py              # script que carrega os .csv num dataframe estruturado (Pandas)
 ├── requirements.txt               # lista todas as dependências/libs do projeto
@@ -53,6 +54,8 @@ Este projeto consiste na modelagem e integração de dados para um sistema de ve
   - para defini-las, crie um novo arquivo no mesmo nível de disco em que está o arquivo anterior, porém nomeando-o para `.env` apenas
   - copie todo o conteúdo de `.env.example` para dentro de `.env` e altere os campos necessários.
   - variáveis como por exemplo `your_db_name_here` significam que você mesmo pode atribuir um valor que achar válido (arbitrário)
+
+**OBS: Troubleshooting** $\rightarrow$ se mesmo após instaladas as dependências python, alguma delas não funcionar adequadamente ou ainda o script principal (etl.py) não reconhecer, vá até o script `install_requirements.ipynb` e execute ele através do environment global do jupyter (apontado para o pip global) e rode a primeira célula. É esperado que a partir daí o script principal do ETL passe a puxar as libs corretamente. Em último caso, fechar e abrir o terminal/VSCode ou até reiniciar a máquina poderá auxiliar. Não é esperado que isso ocorra, mas pode ser uma alternativa válida.
 
 ## Executando o projeto (ETL) ⌛
 
