@@ -69,7 +69,7 @@ O script faz a leitura individualmente de cada arquivo .csv e insere em cada um 
 - MySQL:
   - criação das tabelas 'clientes', 'produtos' e 'pedidos' $\rightarrow$ **Parte 01** deste trabalho
   - inserção dos dados nas tabelas 'clientes', 'produtos' e 'pedidos', linha a linha, vindos de `clientes.csv`, `produtos.csv` e `pedidos.csv` $\rightarrow$ **Parte 02** deste trabalho
-  - inserção dos dados nas tabelas 'clientes' e 'produtos', linha a linha, vindos de `clientes_concorrentes.csv`, `produtos_concorrentes.csv` e $\rightarrow$ **Parte 03** deste trabalho
+  - inserção dos dados nas tabelas 'clientes' e 'produtos', linha a linha, vindos de `clientes_concorrentes.csv` e `produtos_concorrentes.csv` $\rightarrow$ **Parte 03** deste trabalho
 - MongoDB:
   - criação das collections 'clientes', 'produtos' e 'pedidos' $\rightarrow$ **Parte 01** deste trabalho
   - inserção de registros/documentos nas collections 'clientes', 'produtos' e 'pedidos', linha a linha, vindos de `clientes.csv`, `produtos.csv` e `pedidos.csv` $\rightarrow$ **Parte 02** deste trabalho
