@@ -13,7 +13,7 @@ def dockerComposeUp():
         subprocess.run(["docker", "compose", "up", "-d"], check=True)
         print("\n")
         print(f"🟢 MySQL ⇾ running at localhost:{credentials['MySQL']['port']}")
-        print(f"🟢 MongoDB ⇾ running at localhost:{credentials['MySQL']['port']}")
+        print(f"🟢 MongoDB ⇾ running at localhost:{credentials['MongoDB']['port']}")
         print(f"🟢 Cassandra ⇾ running at localhost:{credentials['Cassandra']['port']}")
         print(f"\n[INFO] Docker iniciado com sucesso.")
     except subprocess.CalledProcessError as e:
