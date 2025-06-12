@@ -256,13 +256,25 @@ try:
 
     print("\n")
     print(">> Criando a collection de clientes...")
-    db.create_collection(name='clientes')
+    try:
+        db.create_collection(name='clientes')
+    except:
+        print("[INFO] A collection já existe. Ignorando...")
+        pass
 
     print(">> Criando a collection de produtos...")
-    db.create_collection(name='produtos')
+    try:
+        db.create_collection(name='produtos')
+    except:
+        print("[INFO] A collection já existe. Ignorando...")
+        pass
 
     print(">> Criando a collection de pedidos...")
-    db.create_collection(name='pedidos')
+    try:
+        db.create_collection(name='pedidos')
+    except:
+        print("[INFO] A collection já existe. Ignorando...")
+        pass
 
     """Verifica collections criadas e registros"""
     print("\n")
