@@ -8,7 +8,17 @@ from params import params
 import mysql.connector
 
 # opção para o usuário
-userInput=input("\n>> Deseja interromper automaticamente a docker ao final da execução do script (S/N)? ")
+instruction="""
+ -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+                        ::: ETL Process :::
+
+>> Deseja interromper automaticamente a docker ao final da execução do script (S/N)?
+
+Obs: ao interromper não será possível validar as tabelas/docs criadoss através de um DB_Client
+via CLI/GUI (ex: Beekeeper Studio, DBeaver, HeidiSQL, Mongosh, cqlsh, dentre outras)...
+
+>> Insira aqui sua resposta: """
+userInput=input(instruction)
 if userInput.upper() not in ("S","N"):
     print("\nEntrada inválida. Encerrando o programa...")
     exit()
@@ -29,7 +39,7 @@ df_produtos_concorrente=readFiles()
 # ------------------------ MySQL ------------------------ #
 print('\n','-='*32,'\n','\t\t\t[MySQL Handler]\n')
 
-# awaitsService(start=0,stop=15,step=0.6)
+awaitsService(start=0,stop=15,step=0.6)
 
 try:
     """Estabelece a conexão com o banco de dados."""
@@ -212,12 +222,12 @@ finally:
 # ------------------------ MongoDB ------------------------ #
 print('\n','-='*32,'\n','\t\t\t[MongoDB Handler]\n')
 
-# awaitsService(start=0,stop=2,step=0.25)
+awaitsService(start=0,stop=2,step=0.25)
 
 # ---------------------------- Cassandra ---------------------------- #
 print('\n','-='*32,'\n','\t\t\t[Cassandra Handler]\n')
 
-# awaitsService(start=0,stop=30,step=0.6)
+awaitsService(start=0,stop=30,step=0.6)
 
 # Configurações do cluster
 auth_provider=PlainTextAuthProvider(
@@ -275,8 +285,8 @@ try:
                 nome text,
                 modelo text,
                 fabricante text,
-                cor list<text>,
-                tam list<text>
+                cor text,
+                tam text
         );
         """
         session.execute(createQueryString)
@@ -289,17 +299,29 @@ try:
                 cliente text,
                 endereco text,
                 cep text,
-                itens list<text>,
-                qtdes list<int>,
+                itens text,
+                qtdes int,
                 valor_pago float
             );
         """
         session.execute(createQueryString)
 
+        """Verifica tabelas criadas"""
+        print("\n")
+        metadata=cluster.metadata
+        print(f">> Tabelas criadas: {metadata.keyspaces[keyspace].tables.keys()}")
+        result=session.execute("""SELECT COUNT(*) FROM clientes;""")
+        print(f">> Total de registros (clientes): {list(result)[0][0]}")
+        result=session.execute("""SELECT COUNT(*) FROM produtos;""")
+        print(f">> Total de registros (produtos): {list(result)[0][0]}")
+        result=session.execute("""SELECT COUNT(*) FROM pedidos;""")
+        print(f">> Total de registros (pedidos): {list(result)[0][0]}")
+
         """Inserindo registros"""
         print("\n⚡ Inserindo os dados nas tabelas no Cassandra: produtos, clientes, pedidos - [PARTE 02]")
         
         print("\n>> Tabela de Clientes:")
+        print(df_clientes.to_string(index=False),'\n')
         ids=[index+1 for index in df_clientes.index]
         for index in range(len(df_clientes)):
             dfRowValues=tuple(df_clientes.iloc[index].values)
@@ -312,8 +334,51 @@ try:
             VALUES (%s,%s,%s,%s,%s,%s,%s);"""
             session.execute(query=insertQueryString,parameters=val)
             print(f"{val} ⇾ 1 record inserted.")
-            
 
+        print("\n>> Tabela de Produtos:")
+        print(df_produtos.to_string(index=False),'\n')
+        ids=[index+1 for index in df_produtos.index]
+        for index in range(len(df_produtos)):
+            dfRowValues=tuple(df_produtos.iloc[index].values)
+            val=[ids[index]]
+            for v in dfRowValues:
+                val.append(v)
+            val=tuple(val)
+            insertQueryString="""
+            INSERT INTO produtos (id,codigo,nome,modelo,fabricante,cor,tam)
+            VALUES (%s,%s,%s,%s,%s,%s,%s);"""
+            session.execute(query=insertQueryString,parameters=val)
+            print(f"{val} ⇾ 1 record inserted.")
+        
+        print("\n>> Tabela de Pedidos:")
+        print(df_pedidos.to_string(index=False),'\n')
+        df_pedidos_cp=df_pedidos.copy().astype({
+            'id_cliente':'int',
+            'qtdes':'int',
+            'valor_pago':'float'
+        })
+        ids=[index+1 for index in df_pedidos_cp.index]
+        for index in range(len(df_pedidos_cp)):
+            dfRowValues=tuple(df_pedidos_cp.iloc[index].values)
+            val=[ids[index]]
+            for v in dfRowValues:
+                val.append(v)
+            val=tuple(val)
+            insertQueryString="""
+            INSERT INTO pedidos (id,id_cliente,cliente,endereco,cep,itens,qtdes,valor_pago)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s);"""
+            session.execute(query=insertQueryString,parameters=val)
+            print(f"{val} ⇾ 1 record inserted.")
+        
+        """Verifica registros"""
+        print("\n")
+        result=session.execute("""SELECT COUNT(*) FROM clientes;""")
+        print(f">> Total de registros (clientes): {list(result)[0][0]}")
+        result=session.execute("""SELECT COUNT(*) FROM produtos;""")
+        print(f">> Total de registros (produtos): {list(result)[0][0]}")
+        result=session.execute("""SELECT COUNT(*) FROM pedidos;""")
+        print(f">> Total de registros (pedidos): {list(result)[0][0]}")
+            
 except Exception as e:
     print(f"\n🔴 [ERROR] Falha ao conectar: {e}")
 finally:
@@ -325,6 +390,7 @@ finally:
 
 # ------------------------ End of Execution ------------------------ #
 # finaliza o container
+print('\n','-='*32)
 if userInput.upper()=="S":
     dockerComposeDown()
     print("\n[INFO] Execução do programa finalizada.\n")

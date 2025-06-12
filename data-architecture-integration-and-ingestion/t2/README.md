@@ -44,4 +44,6 @@ O projeto define três entidades principais:
 - **Clientes**
 - **Pedidos**
 
-Para cada uma dessas entidades/tabelas, temos
+docker exec -it cassandra cqlsh -u cassandra -p cassandra
+
+docker exec -it mongo mongosh -u root -p sua_senha --authenticationDatabase admin
