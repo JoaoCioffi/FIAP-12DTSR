@@ -259,22 +259,22 @@ try:
     try:
         db.create_collection(name='clientes')
     except:
-        print("[INFO] A collection já existe. Ignorando...")
-        pass
+        db.drop_collection('clientes') # caso já existir
+        db.create_collection(name='clientes')
 
     print(">> Criando a collection de produtos...")
     try:
         db.create_collection(name='produtos')
     except:
-        print("[INFO] A collection já existe. Ignorando...")
-        pass
+        db.drop_collection('produtos') # caso já existir
+        db.create_collection(name='produtos')
 
     print(">> Criando a collection de pedidos...")
     try:
         db.create_collection(name='pedidos')
     except:
-        print("[INFO] A collection já existe. Ignorando...")
-        pass
+        db.drop_collection('pedidos') # caso já existir
+        db.create_collection(name='pedidos')
 
     """Verifica collections criadas e registros"""
     print("\n")
