@@ -26,7 +26,7 @@ Este projeto consiste na modelagem e integração de dados para um sistema de ve
 │   ├── clientes_concorrente.csv   # base de dados importada do concorrente (clientes - .csv - parte 03)
 │   ├── cliente.csv                # base de dados inicial (clientes - .csv - partes 01, 02)
 │   ├── pedidos.csv                # base de dados inicial (pedidos - .csv - partes 01, 02)
-│   ├── produtos_concorrente.csv   # base de dados importada do concorrente (pedidos - .csv - parte 03)
+│   ├── produtos_concorrente.csv   # base de dados importada do concorrente (produtos - .csv - parte 03)
 │   └── produtos.csv               # base de dados inicial (produtos - .csv - partes 01, 02)
 ├── docker-compose.yaml            # arquivo yaml para buildar e instanciar as imagens (docker containers)
 ├── docker_handler.py              # handler docker para python (instancia o docker através de um subprocess)
@@ -168,7 +168,7 @@ Desta forma, temos o "IMAGE ID" de cada uma delas. Para excluir é simples: copi
 docker rmi <image-id>
 ```
 
-substituindo o "<image-id>" pelo id copiado. Então no caso, se quisermos excluir todos estes do exemplo anterior, seria:
+substituindo o `<image-id>` pelo id copiado. Então no caso, se quisermos excluir todos estes do exemplo anterior, seria:
 
 ```bash
 docker rmi 98028cf281bb 072f96c2f1eb 2d241468ad9d
