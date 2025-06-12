@@ -1,13 +1,26 @@
-# Projeto: ETL de Loja de Calçados - Integração de Dados Multibanco
+# Projeto: ETL de Loja de Calçados - Integração de Dados Multibanco 💡
 
-## Disciplina: Data Architecture, Integration and Ingestion
+## Repositório (Github) 💻
+
+Caso queira consultar, este trabalho (T2) está disponível em: https://github.com/JoaoCioffi/FIAP-12DTSR/tree/main/data-architecture-integration-and-ingestion/t2
+
+Também é possível clonar via:
+
+```bash
+git clone https://github.com/JoaoCioffi/FIAP-12DTSR.git
+```
+
+porém a main branch conterá todos os trabalhos de todas as disciplinas (estando o T2 especificamente em `./data-architecture-integration-and-ingestion/t2` do repo clonado)
+
+## T2 Data Architecture, Integration and Ingestion 📚
 
 Este projeto consiste na modelagem e integração de dados para um sistema de vendas de calçados, utilizando três tecnologias de banco de dados: **MySQL**, **Cassandra** e **MongoDB**.
 
-## Estrutura do Projeto
+## Estrutura do Projeto 🏗️
 
 ```bash
 .                                  # (root)
+├── .env.example                   # exemplo/referência de arquivo a ser lido para criar o .env
 ├── README.md                      # este arquivo
 ├── data                           # base de dados / arquivo brutos (.csv)
 │   ├── clientes_concorrente.csv   # base de dados importada do concorrente (clientes - .csv - parte 03)
@@ -16,13 +29,18 @@ Este projeto consiste na modelagem e integração de dados para um sistema de ve
 │   ├── produtos_concorrente.csv   # base de dados importada do concorrente (pedidos - .csv - parte 03)
 │   └── produtos.csv               # base de dados inicial (produtos - .csv - partes 01, 02)
 ├── docker-compose.yaml            # arquivo yaml para buildar e instanciar as imagens (docker containers)
+├── docker_handler.py              # handler docker para python (instancia o docker através de um subprocess)
+│
 ├── etl.py                         # script que lê cada um dos arquivos (.csv), e carrega em cada uma das bases (processo ETL)
-├── handlers.py                    # script que contém os métodos próprios/wrappers de cada banco
-├── queries.py                     # script que contém as query strings (puras) de cada banco (DDL/DML)
-└── requirements.txt               # requisitos/libs/dependências para rodar o projeto via ETL no python
+│                                  # Obs: ESTE É O SCRIPT PRINCIPAL! NÃO EXECUTE NENHUM OUTRO ALÉM DELE!
+│
+├── params.py                      # script que carrega as variáveis de ambiente de cada banco e aponta para os arquivos .csv
+├── read_csv_files.py              # script que carrega os .csv num dataframe estruturado (Pandas)
+├── requirements.txt               # lista todas as dependências/libs do projeto
+└── stablish_ports.py              # força um temporizador para aguardar os containers estabilizarem e portas estarem disponiveis
 ```
 
-## Configuração de Ambiente
+## Configuração de Ambiente ⚙️
 
 - Requisitos:
   - ter Python previamente instalado (e.g Python 3.11.9) => https://www.python.org/downloads/
@@ -36,14 +54,135 @@ Este projeto consiste na modelagem e integração de dados para um sistema de ve
   - copie todo o conteúdo de `.env.example` para dentro de `.env` e altere os campos necessários.
   - variáveis como por exemplo `your_db_name_here` significam que você mesmo pode atribuir um valor que achar válido (arbitrário)
 
-## Parte 1: Modelagem e Criação de Tabelas
+## Executando o projeto (ETL) ⌛
 
-O projeto define três entidades principais:
+Para rodar o projeto, abra um terminal na root e digite `python3 .\etl.py`. O script terá uma instrução com uma observação. Atente-se a isso! Caso a entrada for inválida, a execução do script será terminada automaticamente. Esta instrução basicamente dá a escolha para o usuário sobre interromper os containers ou deixá-los ativos após o encerramento do processo ETL.
 
-- **Produtos**
-- **Clientes**
-- **Pedidos**
+Durante a execução (caso a entrada for válida, e.g: "s", "S", "n", "N"), você verá uma "barra de carregamento" do processo para cada banco.
+Isso foi implementado de forma intencional, pois verificou-se que mesmo com o output do terminal exibindo o status de "running" para cada um dos containeres, ainda sim não era possível acessar as portas individualmente, pois com os logs de cada serviço elas ainda estavam sendo estabelecidas. Portanto, é necessário aguardar e estabilização do serviço até que cada um dos bancos esteja 100% disponível.
 
-docker exec -it cassandra cqlsh -u cassandra -p cassandra
+O script faz a leitura individualmente de cada arquivo .csv e insere em cada um dos bancos e está dividido na seguinte forma:
 
+- MySQL:
+  - criação das tabelas 'clientes', 'produtos' e 'pedidos' $\rightarrow$ **Parte 01** deste trabalho
+  - inserção dos dados nas tabelas 'clientes', 'produtos' e 'pedidos', linha a linha, vindos de `clientes.csv`, `produtos.csv` e `pedidos.csv` $\rightarrow$ **Parte 02** deste trabalho
+  - inserção dos dados nas tabelas 'clientes' e 'produtos', linha a linha, vindos de `clientes_concorrentes.csv`, `produtos_concorrentes.csv` e `pedidos.csv` $\rightarrow$ **Parte 03** deste trabalho
+- MongoDB:
+  - criação das collections 'clientes', 'produtos' e 'pedidos' $\rightarrow$ **Parte 01** deste trabalho
+  - inserção de registros/documentos nas collections 'clientes', 'produtos' e 'pedidos', linha a linha, vindos de `clientes.csv`, `produtos.csv` e `pedidos.csv` $\rightarrow$ **Parte 02** deste trabalho
+- Cassandra:
+  - criação das tabelas 'clientes', 'produtos' e 'pedidos' $\rightarrow$ **Parte 01** deste trabalho
+  - inserção dos dados nas tabelas 'clientes', 'produtos' e 'pedidos', linha a linha, vindos de `clientes.csv`, `produtos.csv` e `pedidos.csv` $\rightarrow$ **Parte 02** deste trabalho
+
+Após passar por cada um dos handlers de cada banco, o script será finalizado (fechando apenas a conexão do python com o banco), estando os containers ainda rodando (ativos) a depender da escolha inicial do usuário (via instrução)
+
+OBS: Caso os containers estejam ainda ativos, é possível acessá-los diretamente para validar os dados/registros inseridos e tabelas/collections criadas:
+
+### 1. MySQL:
+
+O container do MySQL não fornece um shell diretamente, porém pode ser acessado via GUI (Ex: Beekeeper Studio, DBeaver, dentre outros). Essas ferramentas geralmente fornecem uma interface em que será necessário inserir os parâmetros como host, porta, usuário e senha (disponíveis no .env criado)
+
+### 2. MongoDB:
+
+O MongoDB contém o shell nativo (mongosh). Para acessá-lo, abra um terminal e execute:
+
+```bash
 docker exec -it mongo mongosh -u root -p sua_senha --authenticationDatabase admin
+```
+
+estando a senha no .env criado
+
+### 3. Cassandra:
+
+Da mesma forma que temos no MongoDB, o container do Cassandra também permite um acesso direto via CLI. Para isso, abra um terminal e execute:
+
+```bash
+docker exec -it cassandra cqlsh -u cassandra -p cassandra
+```
+
+Tanto o shell do cassandra quanto o do mongo permite você criar tabelas/collections e inserir os dados diretamente, já que o acesso via command line é direto por um admin user.
+
+## Boas práticas após validação e finalização da execução do projeto ℹ️
+
+Para garantir que não haja nenhuma persistência de dados em disco do que foi executado, podemos executar algumas boas práticas:
+
+### Removendo dependências PIP 🐍
+
+Para desinstalar um módulo python, abra o terminal e execute:
+
+```bash
+pip3 uninstall <package-name>
+```
+
+onde `<package-name>` é o nome da dependência que foi instalada (veja no requirements.txt o nome correto da lib para poder desinstalar)
+
+### Interrompendo containers, excluindo volumes e excluindo imagens 🐋
+
+#### 1. Interrompendo um container ativo:
+
+Caso o script do etl tenha terminado porém os containeres estejam ainda rodando, abra um terminal (na root do projeto) e rode:
+
+```bash
+docker compose down
+```
+
+Atenção! Deve estar na root, pois o `docker compose` depende do `docker-compose.yaml` para receber a instrução
+
+#### 2. Excluindo volumes:
+
+Para listar volumes criados:
+
+```bash
+docker volume ls
+```
+
+Caso queira excluir múltiplos volumes, pode passar eles todos de uma só vez:
+
+```bash
+# Exemplo
+docker volume rm t2_cassandra_data t2_mongo_data t2_mysql_data
+```
+
+em que "t2_cassandra_data", "t2_mongo_data" e "t2_mysql_data" foram os nomes que criamos para os volumes dentro do `docker-compose.yaml`
+
+#### 2. Excluindo imagens:
+
+Infelizmente as imagens para serem excluídas precisam ser pelo ID (gerado por hash pelo docker), o que requer um trabalho um pouco mais manual (existe uma forma automática de remover todas elas de uma só vez, mas pode acabar excluindo uma imagem indesejada). Então para excluirmos exatamente as imagens que criamos para este trabalho (T2), vamos primeiro listar as imagens com:
+
+```bash
+docker image ls
+```
+
+e você verá algo como
+
+```txt
+REPOSITORY   TAG       IMAGE ID       CREATED        SIZE
+mongo        latest    98028cf281bb   8 days ago     1.2GB
+mysql        latest    072f96c2f1eb   8 weeks ago    1.17GB
+cassandra    latest    2d241468ad9d   2 months ago   581MB
+```
+
+Desta forma, temos o "IMAGE ID" de cada uma delas. Para excluir é simples: copie individualmente cada um dos ids e cole no comando a seguir:
+
+```bash
+docker rmi <image-id>
+```
+
+substituindo o "<image-id>" pelo id copiado. Então no caso, se quisermos excluir todos estes do exemplo anterior, seria:
+
+```bash
+docker rmi 98028cf281bb 072f96c2f1eb 2d241468ad9d
+```
+
+e você veria algo como
+
+```txt
+Untagged: mongo:latest
+Deleted: sha256:98028cf281bb5d49ace5e1ddbd4509e8f1382fe80ef1cf101eeefdc106d76cd4
+Untagged: mysql:latest
+Deleted: sha256:072f96c2f1ebb13f712fd88d0ef98f2ef9a52ad4163ae67b550ed6720b6d642e
+Untagged: cassandra:latest
+Deleted: sha256:2d241468ad9d0c091905dddb8d4e5cf4bdfbbfbd6d2acdbd4c7c312e43da93e1
+```
+
+o que significa que o docker deletou completamente a imagem

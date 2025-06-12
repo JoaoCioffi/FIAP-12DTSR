@@ -2,7 +2,6 @@ from params import params
 from tqdm import tqdm
 import numpy as np
 import subprocess
-import time
 
 # carrega as variáveis de ambiente
 _,credentials=params()

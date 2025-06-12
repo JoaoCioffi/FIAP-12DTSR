@@ -1,11 +1,14 @@
 from docker_handler import dockerComposeUp,dockerComposeDown
 from cassandra.auth import PlainTextAuthProvider
 from stablish_ports import awaitsService
+from pymongo import MongoClient, errors
 from cassandra.cluster import Cluster
 from read_csv_files import readFiles
 from mysql.connector import Error
 from params import params
 import mysql.connector
+import json
+import time
 
 # opção para o usuário
 instruction="""
@@ -36,6 +39,11 @@ df_pedidos,\
 df_clientes_concorrente,\
 df_produtos_concorrente=readFiles()
 
+""" Rate Limiting / Throttling: limita o número de transações
+    por segundo para não sobrecarregar o banco de dados
+"""
+RATE_LIMITING=0.1
+
 # ------------------------ MySQL ------------------------ #
 print('\n','-='*32,'\n','\t\t\t[MySQL Handler]\n')
 
@@ -52,7 +60,7 @@ try:
         database=credentials["MySQL"]["database"]
     )
     cursor=cnx.cursor()
-    print(f"\n🟢 [INFO] Conexão com MySQL estabelecida na porta: {credentials['MySQL']['port']}")
+    print(f"\n🟢 [INFO] Conexão com MySQL estabelecida na porta: {credentials['MySQL']['port']} | database: {credentials['MySQL']['database']}")
     try:
         
         """Executa uma query (DDL)"""
@@ -131,7 +139,8 @@ try:
             """
             cursor.execute(insertQueryString,val)
             cnx.commit()
-            print(f"{val} ⇾ {cursor.rowcount} record inserted.")
+            print(f"{val} ⇾ {cursor.rowcount} record inserted...")
+            time.sleep(RATE_LIMITING)
         
         print("\n>> Tabela de Produtos:")
         print(df_produtos,'\n')
@@ -144,7 +153,8 @@ try:
             """
             cursor.execute(insertQueryString,val)
             cnx.commit()
-            print(f"{val} ⇾ {cursor.rowcount} record inserted.")
+            print(f"{val} ⇾ {cursor.rowcount} record inserted...")
+            time.sleep(RATE_LIMITING)
             
         print("\n>> Tabela de Pedidos:")
         print(df_pedidos,'\n')
@@ -157,7 +167,8 @@ try:
             """
             cursor.execute(insertQueryString,val)
             cnx.commit()
-            print(f"{val} ⇾ {cursor.rowcount} record inserted.")
+            print(f"{val} ⇾ {cursor.rowcount} record inserted...")
+            time.sleep(RATE_LIMITING)
         
         """Verifica registros"""
         print("\n")
@@ -182,7 +193,8 @@ try:
             """
             cursor.execute(insertQueryString,val)
             cnx.commit()
-            print(f"{val} ⇾ {cursor.rowcount} record inserted.")
+            print(f"{val} ⇾ {cursor.rowcount} record inserted...")
+            time.sleep(RATE_LIMITING)
         
         print("\n>> Tabela de Clientes:")
         print(df_clientes_concorrente,'\n')
@@ -195,7 +207,8 @@ try:
             """
             cursor.execute(insertQueryString,val)
             cnx.commit()
-            print(f"{val} ⇾ {cursor.rowcount} record inserted.")
+            print(f"{val} ⇾ {cursor.rowcount} record inserted...")
+            time.sleep(RATE_LIMITING)
         
         """Verifica registros"""
         print("\n")
@@ -224,6 +237,111 @@ print('\n','-='*32,'\n','\t\t\t[MongoDB Handler]\n')
 
 awaitsService(start=0,stop=2,step=0.25)
 
+client=None
+try:
+    """Estabelece a conexão com o banco de dados."""
+    client=MongoClient(
+                        host=credentials["MongoDB"]["host"],
+                        port=credentials["MongoDB"]["port"],
+                        username=credentials["MongoDB"]["user"],
+                        password=credentials["MongoDB"]["password"],
+                        authSource=credentials["MongoDB"]["authsource"],
+                        serverSelectionTimeoutMS=3000
+    )
+    client.admin.command('ping') # força verificação da conexão (ping no servidor)
+    db=client[credentials['MongoDB']['database']]
+    print(f"\n🟢 [INFO] Conexão com MongoDB estabelecida na porta: {credentials['MongoDB']['port']} | database: {credentials['MongoDB']['database']}")
+
+    print("\n⚡ Criando collections no MongoDB: produtos, clientes, pedidos - [PARTE 01]")
+
+    print("\n")
+    print(">> Criando a collection de clientes...")
+    db.create_collection(name='clientes')
+
+    print(">> Criando a collection de produtos...")
+    db.create_collection(name='produtos')
+
+    print(">> Criando a collection de pedidos...")
+    db.create_collection(name='pedidos')
+
+    """Verifica collections criadas e registros"""
+    print("\n")
+    print(f">> Collections criadas: {db.list_collection_names()}")
+    print(f">> Total de documentos/registros (clientes): {db.clientes.count_documents({})}")
+    print(f">> Total de documentos/registros (produtos): {db.produtos.count_documents({})}")
+    print(f">> Total de documentos/registros (pedidos): {db.pedidos.count_documents({})}")
+
+    print("\n⚡ Inserindo documentos no MongoDB: produtos, clientes, pedidos - [PARTE 02]")
+    
+    print("\n>> Collection de Clientes:")
+    counter=0
+    for registry in df_clientes.to_dict(orient='records'):
+        counter+=1
+        collection=db["clientes"]
+        print(f"{json.dumps(registry,indent=4,ensure_ascii=False)}\n\n{counter} document(s) inserted...\n")
+        collection.insert_one(registry)
+        time.sleep(RATE_LIMITING)
+    print('\n')
+    """Cria um índice na collection"""
+    collection.create_index([
+        ('cpf',1),('nome',1),('endereco',1),
+        ('cep',1),('email',1),('telefones',1)
+    ],unique=True)
+
+    print("\n>> Collection de Produtos:")
+    counter=0
+    df_produtos_cp=df_produtos.copy().astype({
+            'cor':'object',
+            'tam':'object'
+    })
+    for registry in df_produtos.to_dict(orient='records'):
+        counter+=1
+        collection=db["produtos"]
+        print(f"{json.dumps(registry,indent=4,ensure_ascii=False)}\n\n{counter} document(s) inserted...\n")
+        collection.insert_one(registry)
+        time.sleep(RATE_LIMITING)
+    print('\n')
+    """Cria um índice na collection"""
+    collection.create_index([
+        ('codigo',1),('nome',1),('modelo',1),
+        ('fabricante',1),('cor',1),('tam',1)
+    ],unique=True)
+
+    print("\n>> Collection de Pedidos:")
+    counter=0
+    df_pedidos_cp=df_pedidos.copy().astype({
+            'id_cliente':'int',
+            'qtdes':'int',
+            'valor_pago':'float'
+    })
+    for registry in df_pedidos_cp.to_dict(orient='records'):
+        counter+=1
+        collection=db["pedidos"]
+        print(f"{json.dumps(registry,indent=4,ensure_ascii=False)}\n\n{counter} document(s) inserted...\n")
+        collection.insert_one(registry)
+        time.sleep(RATE_LIMITING)
+    print('\n')
+    """Cria um índice na collection"""
+    collection.create_index([
+        ('id_cliente',1),('cliente',1),('endereco',1),
+        ('cep',1),('itens',1),('qtdes',1),('valor_pago',1)
+    ],unique=True)
+
+    """Verifica registros"""
+    print("\n")
+    print(f">> Total de documentos/registros (clientes): {db.clientes.count_documents({})}")
+    print(f">> Total de documentos/registros (produtos): {db.produtos.count_documents({})}")
+    print(f">> Total de documentos/registros (pedidos): {db.pedidos.count_documents({})}")
+
+
+except errors.ConnectionFailure as e:
+    raise RuntimeError(f"\n🔴 [ERROR] Falha ao conectar: {e}")
+finally:
+    # Encerra a conexão, se aberta
+    if client:
+        client.close()
+        print("\n🔴 [INFO] Conexão com MongoDB encerrada...\n")
+
 # ---------------------------- Cassandra ---------------------------- #
 print('\n','-='*32,'\n','\t\t\t[Cassandra Handler]\n')
 
@@ -231,11 +349,10 @@ awaitsService(start=0,stop=30,step=0.6)
 
 # Configurações do cluster
 auth_provider=PlainTextAuthProvider(
-                                        username=credentials["Cassandra"]["user"],
-                                        password=credentials["Cassandra"]["password"]
-                                        )
+                                    username=credentials["Cassandra"]["user"],
+                                    password=credentials["Cassandra"]["password"]
+                                    )
 cluster=Cluster(['localhost'],port=credentials["Cassandra"]["port"],auth_provider=auth_provider)
-
 try:
     """Estabelece a conexão com o banco de dados."""
     print("\n>> Tentando conectar ao Cassandra...")
@@ -333,7 +450,8 @@ try:
             INSERT INTO clientes (id,cpf,nome,endereco,cep,email,telefone)
             VALUES (%s,%s,%s,%s,%s,%s,%s);"""
             session.execute(query=insertQueryString,parameters=val)
-            print(f"{val} ⇾ 1 record inserted.")
+            print(f"{val} ⇾ 1 record inserted...")
+            time.sleep(RATE_LIMITING)
 
         print("\n>> Tabela de Produtos:")
         print(df_produtos.to_string(index=False),'\n')
@@ -348,7 +466,8 @@ try:
             INSERT INTO produtos (id,codigo,nome,modelo,fabricante,cor,tam)
             VALUES (%s,%s,%s,%s,%s,%s,%s);"""
             session.execute(query=insertQueryString,parameters=val)
-            print(f"{val} ⇾ 1 record inserted.")
+            print(f"{val} ⇾ 1 record inserted...")
+            time.sleep(RATE_LIMITING)
         
         print("\n>> Tabela de Pedidos:")
         print(df_pedidos.to_string(index=False),'\n')
@@ -368,7 +487,8 @@ try:
             INSERT INTO pedidos (id,id_cliente,cliente,endereco,cep,itens,qtdes,valor_pago)
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s);"""
             session.execute(query=insertQueryString,parameters=val)
-            print(f"{val} ⇾ 1 record inserted.")
+            print(f"{val} ⇾ 1 record inserted...")
+            time.sleep(RATE_LIMITING)
         
         """Verifica registros"""
         print("\n")
