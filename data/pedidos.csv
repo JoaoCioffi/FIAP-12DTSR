@@ -1,0 +1,11 @@
+id_cliente,cliente,endereco,cep,itens,qtdes,valor_pago
+"1","João Silva","Rua das Palmeiras","12345-678","Tênis Nike Air Max","1","450.00"
+"2","Ana Costa","Avenida Paulista","45678-910","Tênis Adidas UltraBoost","2","889.99"
+"3","Pedro Souza","Rua João Pessoa","78901-234","Tênis Puma RS-X3","1","350.00"
+"4","Mariana Lima","Rua das Acácias","23456-789","Tênis Nike React Infinity","3","320.00"
+"5","Lucas Almeida","Rua 15 de Novembro","34567-890","Tênis Mizuno Wave Rider 24","2","550.63"
+"7","Carlos Pereira","Rua do Sol","65432-123","Tênis Converse Chuck Taylor","1","250.20"
+"8","Julia Martins","Rua da Paz","12345-678","Tênis Nike Zoom Freak","2","900.00"
+"6","Fernanda Oliveira","Av. Brasil","98765-432","Tênis Adidas EQT Support","1","470.50"
+"10","Renata Santos","Av. Ipiranga","56789-012","Tênis Reebok Speed 600","1","120.00"
+"7","Carlos Pereira","Rua do Sol","65432-123","Tênis New Balance Fresh Foam","1","700.00"

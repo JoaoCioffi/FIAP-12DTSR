@@ -365,10 +365,13 @@ auth_provider=PlainTextAuthProvider(
                                     password=credentials["Cassandra"]["password"]
                                     )
 cluster=Cluster(['localhost'],port=credentials["Cassandra"]["port"],auth_provider=auth_provider)
+# Inicialize session como None
+session = None
+
 try:
     """Estabelece a conexão com o banco de dados."""
     print("\n>> Tentando conectar ao Cassandra...")
-    session=cluster.connect()
+    session = cluster.connect(credentials["Cassandra"]["keyspace"])
     
     if session:
         
