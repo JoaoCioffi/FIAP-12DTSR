@@ -17,7 +17,7 @@ instruction="""
 
 >> Deseja interromper automaticamente a docker ao final da execução do script (S/N)?
 
-Obs: ao interromper não será possível validar as tabelas/docs criadoss através de um DB_Client
+Obs: ao interromper não será possível validar as tabelas/docs criados através de um DB_Client
 via CLI/GUI (ex: Beekeeper Studio, DBeaver, HeidiSQL, Mongosh, cqlsh, dentre outras)...
 
 >> Insira aqui sua resposta: """
@@ -47,7 +47,7 @@ RATE_LIMITING=0.1
 # ------------------------ MySQL ------------------------ #
 print('\n','-='*32,'\n','\t\t\t[MySQL Handler]\n')
 
-awaitsService(start=0,stop=15,step=0.6)
+awaitsService(start=0,stop=20,step=0.4)
 
 try:
     """Estabelece a conexão com o banco de dados."""
@@ -365,6 +365,9 @@ auth_provider=PlainTextAuthProvider(
                                     password=credentials["Cassandra"]["password"]
                                     )
 cluster=Cluster(['localhost'],port=credentials["Cassandra"]["port"],auth_provider=auth_provider)
+
+# Inicialize session como None
+session = None
 try:
     """Estabelece a conexão com o banco de dados."""
     print("\n>> Tentando conectar ao Cassandra...")

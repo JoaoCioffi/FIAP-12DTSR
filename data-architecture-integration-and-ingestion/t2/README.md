@@ -83,7 +83,15 @@ OBS: Caso os containers estejam ainda ativos, é possível acessá-los diretamen
 
 ### 1. MySQL:
 
-O container do MySQL não fornece um shell diretamente, porém pode ser acessado via GUI (Ex: Beekeeper Studio, DBeaver, dentre outros). Essas ferramentas geralmente fornecem uma interface em que será necessário inserir os parâmetros como host, porta, usuário e senha (disponíveis no .env criado)
+O container do MySQL pode ser acessado tanto via shell/CLI, quanto por GUI (Ex: Beekeeper Studio, DBeaver, dentre outros). Essas ferramentas geralmente fornecem uma interface em que será necessário inserir os parâmetros como host, porta, usuário e senha (disponíveis no .env criado).
+
+Para acessar via terminal (CLI), insira no terminal:
+
+```bash
+docker exec -it mysql mysql -u root -p
+```
+
+Ele pedirá sua senha (a mesma que foi definida no .env).
 
 ### 2. MongoDB:
 
