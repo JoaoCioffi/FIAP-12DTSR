@@ -26,11 +26,11 @@ services:
     image: cassandra:latest
     container_name: cassandra
     ports:
-      - "9042:9042"
       - "7000:7000"
       - "7001:7001"
       - "7199:7199"
       - "9160:9160"
+      - "9042:9042"
     environment:
       CASSANDRA_CLUSTER_NAME: ${CASSANDRA_CLUSTER_NAME}
       CASSANDRA_START_RPC: "true"

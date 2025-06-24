@@ -7,14 +7,14 @@ def params():
     filesPath = {
         "original_db": {
             "info": "base de dados original (arquivos .csv criados para raw data)",
-            "customers": os.path.join("data","clientes.csv"),
-            "products": os.path.join("data","produtos.csv"),
-            "orders": os.path.join("data","pedidos.csv")
+            "customers": "t2/data/clientes.csv",
+            "products": "t2/data/produtos.csv",
+            "orders": "t2/data/pedidos.csv"
         },
         "imported_db": {
             "info": "base de dados importada do concorrente (arquivos .csv criados para imported data)",
-            "products": os.path.join("data","produtos_concorrente.csv"),
-            "customers": os.path.join("data","clientes_concorrente.csv")
+            "products": "t2/data/produtos_concorrente.csv",
+            "customers": "t2/data/clientes_concorrente.csv"
         }
     }
 
